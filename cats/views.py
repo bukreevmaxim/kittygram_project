@@ -11,7 +11,11 @@ def cat_list(request):
     if request.method == 'POST':
         # Создаём объект сериализатора 
         # и передаём в него данные из POST-запроса
-        serializer = CatSerializer(data=request.data, many=True)
+        if isinstance(request.data, list):
+            serializer = CatSerializer(data=request.data, many=True)
+        else:
+            serializer = CatSerializer(data=request.data)
+
         if serializer.is_valid():
             # Если полученные данные валидны —
             # сохраняем данные в базу через save().
@@ -26,23 +30,28 @@ def cat_list(request):
     serializer = CatSerializer(cats, many=True)
     return Response(serializer.data)
 
-@api_view(['PUT', 'PATCH', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 def cat_detail(request, pk):
     cat = Cat.objects.get(pk=pk)
 
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        # Сериализуем один объект (без many=True)
+        serializer = CatSerializer(cat)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    if request.method == 'PUT' or request.method == 'PATCH':
         serializer = CatSerializer(cat, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    if request.method == 'PATCH':
-        serializer = CatSerializer(cat, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # if request.method == 'PATCH':
+    #     serializer = CatSerializer(cat, data=request.data, partial=True)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     cat.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
